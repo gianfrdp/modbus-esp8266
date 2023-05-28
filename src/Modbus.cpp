@@ -507,15 +507,16 @@ Modbus::ResultCode Modbus::readBits(TAddress startreg, uint16_t numregs, Functio
     free(_frame);
     //Determine the message length = function type, byte count and
 	//for each group of 8 registers the message length increases by 1
-	_len = 2 + numregs/8;
+	_len = 3 + numregs/8;
 	if (numregs % 8) _len++; //Add 1 to the message length for the partial byte.
     _frame = (uint8_t*) malloc(_len);
     if (!_frame)
         return EX_SLAVE_FAILURE;
     _frame[0] = fn;
-    _frame[1] = _len - 2; //byte count (_len - function code and byte count)
+    _frame[1] = (_len - 3) >> 8; //byte count (_len - function code and byte count)
+    _frame[2] = (_len - 3) & 0x00FF; //byte count (_len - function code and byte count)
 	_frame[_len - 1] = 0;  //Clean last probably partial byte
-    getMultipleBits(_frame+2, startreg, numregs);
+    getMultipleBits(_frame+3, startreg, numregs);
     _reply = REPLY_NORMAL;
     return EX_SUCCESS;
 }
@@ -534,13 +535,14 @@ Modbus::ResultCode Modbus::readWords(TAddress startreg, uint16_t numregs, Functi
         return EX_ILLEGAL_ADDRESS;
 #endif
     free(_frame);
-	_len = 2 + numregs * 2; //calculate the query reply message length. 2 bytes per register + 2 bytes for header
+	_len = 3 + numregs * 2; //calculate the query reply message length. 2 bytes per register + 3 bytes for header
     _frame = (uint8_t*) malloc(_len);
     if (!_frame)
         return EX_SLAVE_FAILURE;
     _frame[0] = fn;
-    _frame[1] = _len - 2;   //byte count
-    getMultipleWords((uint16_t*)(_frame + 2), startreg, numregs);
+    _frame[1] = (_len - 3) >> 8;       //byte count
+    _frame[2] = (_len - 3) & 0x00FF;   //byte count
+    getMultipleWords((uint16_t*)(_frame + 3), startreg, numregs);
     _reply = REPLY_NORMAL;
     return EX_SUCCESS;
 }
